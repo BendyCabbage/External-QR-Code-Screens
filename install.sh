@@ -32,7 +32,7 @@ apt-get update
 apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv \
-    chromium-browser \
+    chromium \
     unclutter
 
 echo ""
@@ -93,7 +93,7 @@ xset s noblank
 xset -dpms
 
 # Launch Chromium in kiosk mode
-chromium-browser \
+chromium \
     --kiosk \
     --noerrdialogs \
     --disable-infobars \
