@@ -21,50 +21,9 @@ BASE_URL = "https://portal.hyperkarting.com.au/registration/"
 LOGO_SVG = (Path(__file__).parent / "logo.svg").read_text()
 
 
-def generate_html(show_qr=False, booking_name=None, booking_number=None, qr_url=None):
-    """Generate the display HTML with current state baked in"""
-
-    if show_qr and qr_url:
-        # QR code display
-        name_html = f'<div id="booking-name">{booking_name}\'s Booking</div>' if booking_name else ''
-        content = f'''
-        <div id="qr-container">
-            {name_html}
-            <div id="qr-code"></div>
-        </div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-        <script>
-            new QRCode(document.getElementById('qr-code'), {{
-                text: '{qr_url}',
-                width: 700,
-                height: 700,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            }});
-            setInterval(function() {{
-                fetch('/state').then(r => r.json()).then(function(data) {{
-                    var current = '{booking_number or ""}';
-
-                    var newVal = data.booking_number || '';
-                    if (newVal !== current) location.reload();
-                }});
-            }}, 3000);
-        </script>'''
-    else:
-        # Logo display (default)
-        content = f'''
-        <div id="logo-container">
-            {LOGO_SVG}
-        </div>
-        <script>
-            setInterval(function() {{
-                fetch('/state').then(r => r.json()).then(function(data) {{
-                    if (data.booking_number) location.reload();
-                }});
-            }}, 3000);
-        </script>'''
-
+@app.route("/")
+def display():
+    """Serve single-page display that polls /state and updates without reloading"""
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,100 +33,80 @@ def generate_html(show_qr=False, booking_name=None, booking_number=None, qr_url=
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         html, body {{
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Montserrat', sans-serif;
+            width: 100%; height: 100%; overflow: hidden;
+            background-color: #000; font-family: 'Montserrat', sans-serif;
         }}
-
         .container {{
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
+            width: 100%; height: 100%; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; padding: 40px;
         }}
-
         #logo-container {{
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            width: 100%; height: 100%;
         }}
-
-        #logo-container svg {{
-            width: 70%;
-            max-width: 600px;
-            height: auto;
-        }}
-
+        #logo-container svg {{ width: 70%; max-width: 600px; height: auto; }}
         #qr-container {{
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-            gap: 80px;
+            display: none; flex-direction: column; justify-content: center;
+            align-items: center; width: 100%; height: 100%; gap: 80px;
         }}
-
         #booking-name {{
-            font-family: 'Montserrat', sans-serif;
-            font-size: 75px;
-            font-weight: 700;
-            color: #fff;
-            text-align: center;
-            letter-spacing: 3px;
-            line-height: 1.1;
-            max-width: 90%;
-            word-wrap: break-word;
+            font-family: 'Montserrat', sans-serif; font-size: 75px; font-weight: 700;
+            color: #fff; text-align: center; letter-spacing: 3px; line-height: 1.1;
+            max-width: 90%; word-wrap: break-word;
         }}
-
         #qr-code {{
-            background: #fff;
-            padding: 40px;
-            border-radius: 24px;
+            background: #fff; padding: 40px; border-radius: 24px;
             box-shadow: 0 8px 32px rgba(255, 255, 255, 0.1);
         }}
-
-        #qr-code canvas,
-        #qr-code img {{
-            display: block;
-        }}
+        #qr-code canvas, #qr-code img {{ display: block; }}
     </style>
 </head>
 <body>
     <div class="container">
-        {content}
+        <div id="logo-container">{LOGO_SVG}</div>
+        <div id="qr-container">
+            <div id="booking-name"></div>
+            <div id="qr-code"></div>
+        </div>
     </div>
+    <script>
+        var currentBooking = '';
+
+        function poll() {{
+            fetch('/state').then(function(r) {{ return r.json(); }}).then(function(data) {{
+                var num = data.booking_number || '';
+                if (num === currentBooking) return;
+                currentBooking = num;
+
+                if (!num) {{
+                    document.getElementById('logo-container').style.display = 'flex';
+                    document.getElementById('qr-container').style.display = 'none';
+                    document.getElementById('qr-code').innerHTML = '';
+                    return;
+                }}
+
+                document.getElementById('booking-name').textContent = data.booking_name ? data.booking_name + "'s Booking" : '';
+                document.getElementById('qr-code').innerHTML = '';
+                new QRCode(document.getElementById('qr-code'), {{
+                    text: '{BASE_URL}' + num,
+                    width: 700, height: 700,
+                    colorDark: '#000000', colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                }});
+                document.getElementById('logo-container').style.display = 'none';
+                document.getElementById('qr-container').style.display = 'flex';
+            }});
+        }}
+
+        poll();
+        setInterval(poll, 3000);
+    </script>
 </body>
 </html>'''
-
-
-@app.route("/")
-def display():
-    """Serve the fullscreen display page"""
-    if current_booking["booking_number"]:
-        url = f"{BASE_URL}{current_booking['booking_number']}"
-        return generate_html(
-            show_qr=True,
-            booking_name=current_booking["booking_name"],
-            booking_number=current_booking["booking_number"],
-            qr_url=url
-        )
-    return generate_html()
 
 
 @app.route("/update_qr", methods=["POST"])
