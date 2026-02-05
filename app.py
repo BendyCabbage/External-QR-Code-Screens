@@ -60,8 +60,8 @@ def display():
         }}
         #booking-name {{
             font-family: 'Montserrat', sans-serif; font-size: 70px; font-weight: 700;
-            color: #fff; text-align: center; letter-spacing: 3px; line-height: 1.1;
-            max-width: 90%; word-wrap: break-word; line-height: 1.4;
+            color: #fff; text-align: center; letter-spacing: 3px; line-height: 1.4;
+            max-width: 85vw; word-wrap: break-word;
         }}
         #booking-label {{
             font-family: 'Montserrat', sans-serif; font-size: 50px; font-weight: 7
