@@ -21,7 +21,7 @@ BASE_URL = "https://portal.hyperkarting.com.au/registration/"
 LOGO_SVG = (Path(__file__).parent / "logo.svg").read_text()
 
 
-def generate_html(show_qr=False, booking_name=None, qr_url=None):
+def generate_html(show_qr=False, booking_name=None, booking_number=None, qr_url=None):
     """Generate the display HTML with current state baked in"""
 
     if show_qr and qr_url:
@@ -42,20 +42,34 @@ def generate_html(show_qr=False, booking_name=None, qr_url=None):
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.H
             }});
+            setInterval(function() {{
+                fetch('/state').then(r => r.json()).then(function(data) {{
+                    var current = '{booking_number or ""}';
+
+                    var newVal = data.booking_number || '';
+                    if (newVal !== current) location.reload();
+                }});
+            }}, 3000);
         </script>'''
     else:
         # Logo display (default)
         content = f'''
         <div id="logo-container">
             {LOGO_SVG}
-        </div>'''
+        </div>
+        <script>
+            setInterval(function() {{
+                fetch('/state').then(r => r.json()).then(function(data) {{
+                    if (data.booking_number) location.reload();
+                }});
+            }}, 3000);
+        </script>'''
 
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="3">
     <title>Hyper Karting Check-In</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -150,6 +164,7 @@ def display():
         return generate_html(
             show_qr=True,
             booking_name=current_booking["booking_name"],
+            booking_number=current_booking["booking_number"],
             qr_url=url
         )
     return generate_html()
@@ -197,6 +212,12 @@ def reset_display():
     current_booking["booking_name"] = None
 
     return jsonify({"status": "success", "message": "Display reset to logo"}), 200
+
+
+@app.route("/state", methods=["GET"])
+def state():
+    """Return current booking state for polling"""
+    return jsonify(current_booking), 200
 
 
 @app.route("/health", methods=["GET"])
