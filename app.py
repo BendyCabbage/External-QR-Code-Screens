@@ -55,10 +55,18 @@ def display():
             display: none; flex-direction: column; justify-content: center;
             align-items: center; width: 100%; height: 100%; gap: 80px;
         }}
+        #booking-name-wrapper {{
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+        }}
         #booking-name {{
-            font-family: 'Montserrat', sans-serif; font-size: 75px; font-weight: 700;
+            font-family: 'Montserrat', sans-serif; font-size: 70px; font-weight: 700;
             color: #fff; text-align: center; letter-spacing: 3px; line-height: 1.1;
-            max-width: 90%; word-wrap: break-word;
+            max-width: 90%; word-wrap: break-word; line-height: 1.4;
+        }}
+        #booking-label {{
+            font-family: 'Montserrat', sans-serif; font-size: 50px; font-weight: 7
+            00;
+            color: #fff; text-align: center; letter-spacing: 3px;
         }}
         #qr-code {{
             background: #fff; padding: 40px; border-radius: 24px;
@@ -71,7 +79,10 @@ def display():
     <div class="container">
         <div id="logo-container">{LOGO_SVG}</div>
         <div id="qr-container">
-            <div id="booking-name"></div>
+            <div id="booking-name-wrapper">
+                <div id="booking-label"></div>
+                <div id="booking-name"></div>
+            </div>
             <div id="qr-code"></div>
         </div>
     </div>
@@ -91,7 +102,8 @@ def display():
                     return;
                 }}
 
-                document.getElementById('booking-name').textContent = data.booking_name ? data.booking_name + "'s Booking" : '';
+                document.getElementById('booking-label').textContent = data.booking_name ? 'Booking for' : '';
+                document.getElementById('booking-name').textContent = data.booking_name || '';
                 document.getElementById('qr-code').innerHTML = '';
                 new QRCode(document.getElementById('qr-code'), {{
                     text: '{BASE_URL}' + num,
