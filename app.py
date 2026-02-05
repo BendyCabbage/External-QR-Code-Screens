@@ -6,8 +6,10 @@ Serves a fullscreen display and accepts booking updates via API
 
 from pathlib import Path
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # Current state (not persisted)
 current_booking = {
